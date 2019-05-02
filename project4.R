@@ -11,8 +11,10 @@ data <- read.csv("LoanStats_2007_to_2018Q2.csv")
 library(car)
 data[,"loan_status"] <- Recode(data[,"loan_status"],
                    "c('Fully Paid') = 0;
-                    c('Default','Charged Off') = 1"
-)
+                    c('Default','Charged Off') = 1")
+rm <- c("zip_code","emp_title", "title")
+datacl <- data[ , !(names(data) %in% rm)]
+
 # prepare the train/test splits======================
 #Prepare the data
 i <- 1
@@ -28,7 +30,7 @@ colnames(result) <-c("m1","m2","m3")
 #********** model1 ******************* 
 library(glmnet)
 
-lr.model <- cv.glmnet(train[,-"loan_status"], train.y, family="binomial", alpha=1)
+lr.model <- cv.glmnet(train[,-13], train.y, family="binomial", alpha=1)
 lr.probs <- predict(lr.model, newx=dtm_test, type="response")
 #********** model2 ******************* 
 #********** model3 ******************* 
@@ -46,8 +48,5 @@ testq4 <- read.csv ("LoanStats_2018Q4.csv")
 
 # write.table(mysubmission_2018Q3.txt, file=outname, row.names = FALSE, sep=",", col.names = TRUE)
 # write.table(mysubmission_2018Q4.txt, file=outname, row.names = FALSE, sep=",", col.names = TRUE)
-
-
-
 
 
