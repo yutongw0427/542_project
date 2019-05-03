@@ -5,14 +5,12 @@ installIfNeeded <- function(cliblist){
 }
 installIfNeeded(c("car"))
 
-# Helper Functions ==================================
-# One-Hot encoding
+# Helper functions =========================================
 PreProcessingMatrixOutput <- function(train.data, test.data){
   # generate numerical matrix of the train/test
   # assume train.data, test.data have the same columns
   categorical.vars <- colnames(train.data)[which(sapply(train.data, 
                                                         function(x) is.factor(x)))]
-  categorical.vars <- c(categorical.vars, "Mo_Sold", "Year_Sold")
   train.matrix <- train.data[, !colnames(train.data) %in% categorical.vars, drop=FALSE]
   test.matrix <- test.data[, !colnames(train.data) %in% categorical.vars, drop=FALSE]
   n.train <- nrow(train.data)
@@ -34,7 +32,7 @@ PreProcessingMatrixOutput <- function(train.data, test.data){
     test.matrix <- cbind(test.matrix, tmp.test)
   }
   return(list(train = as.matrix(train.matrix), test = as.matrix(test.matrix)))
-} 
+}
 
 # Function of removing unnecessary variables
 RemoveVariable <- function(data, var){
@@ -49,7 +47,7 @@ ProcessWinsorization <- function(train.var, test.var, quant){
   test.var[test.var > threshold] <- threshold
   return(list(train.v = train.var, test.v = test.var))
 }
-                                                        
+
 # Change NA to specific value
 changeNA <- function(column, repl){
   is.fac <- 0
@@ -64,15 +62,21 @@ changeNA <- function(column, repl){
   else
     return(as.factor(column))
 }
-                                                        
-                                                        
-                                                        
-                                                        
-# prepare the Data======================
-setwd("~/Desktop/542/project/Project4")
+
+#Function of Calculating the month
+monnb <- function(d) { lt <- as.POSIXlt(as.Date(d, origin="1940-01-01")); 
+lt$year*12 + lt$mon } 
+# compute a month difference as a difference between two monnb's
+mondf <- function(d1, d2) { monnb(d2) - monnb(d1) }
+
+
+# Data Processing =========================================
+setwd("/Users/Meana/Documents/4.STAT542/Project_4")
+
 split <- read.csv("Project4_test_id.csv")
-data <- read.csv("LoanStats_2007_to_2018Q2.csv")
-                                                        
+data <- read.csv("loan_stat542.csv")
+datacl <- data
+
 # recode y label
 library(car)
 datacl[,"loan_status"] <- Recode(datacl[,"loan_status"],
@@ -88,28 +92,45 @@ datacl <- datacl[ , !(names(datacl) %in% rm)]
 datacl$mort_acc <- changeNA(datacl$mort_acc, mean(datacl$mort_acc, na.rm = T))
 datacl$emp_length <- changeNA(datacl$emp_length, "missing")
 
+#calculate the month
+date <- as.Date(paste("1-", data[,"earliest_cr_line"], sep=""),format="%d-%b-%Y")
+datacl[,"earliest_cr_line"] <- mondf(date, "2015-04-01")
 
-                                                        
-                                                        
-                                                                                                          
-# prepare the train/test splits======================
-#Prepare the data
-i <- 1
-testid <- split[,i]
-test <- data[testid,]
-train <- data[-testid,]
-train.y <- train$loan_status
-test.y <- test$loan_status
 
-# Pick a classification method====================
+
+
+# Building Classifiers =================================
 result <- matrix(NA, ncol=3, nrow=3)
 colnames(result) <-c("m1","m2","m3")
-#********** model1 ******************* 
-library(glmnet)
 
-lr.model <- cv.glmnet(train[,-13], train.y, family="binomial", alpha=1)
-lr.probs <- predict(lr.model, newx=dtm_test, type="response")
+#********** model1: Lasso Logistic Regression ******************* 
+result_lasso <- rep(NA, 3)
+
+for(i in 1:ncol(split)){
+  # prepare the train/test splits
+  testid <- split[, i]
+  ind <- which(datacl$id %in% testid)
+  test <- data[ind,]
+  train <- data[-ind,]
+  
+  # One hot encoding
+  
+
+
+
+}
+
+
+
+
+
+
+
+
 #********** model2 ******************* 
+
+
+
 #********** model3 ******************* 
 
 # colnames(output) <- c("id", "prob")
@@ -125,3 +146,8 @@ testq4 <- read.csv ("LoanStats_2018Q4.csv")
 
 # write.table(mysubmission_2018Q3.txt, file=outname, row.names = FALSE, sep=",", col.names = TRUE)
 # write.table(mysubmission_2018Q4.txt, file=outname, row.names = FALSE, sep=",", col.names = TRUE)
+
+
+
+
+
