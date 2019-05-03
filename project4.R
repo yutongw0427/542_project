@@ -115,7 +115,47 @@ for(i in 1:ncol(split)){
   train <- data1[-ind,]
   
   # One hot encoding
+result_lasso <- rep(NA, 3)
+data1 <- datacl
+#
+  # prepare the train/test splits
+  i <- 1
+  testid <- split[, i]
+  ind <- which(data1$id %in% testid)
+  train.y <-data1[-ind,"loan_status"] 
+  test.y <- data1[ind,"loan_status"]
+  train.x <- RemoveVariable(data1[-ind,],c("id","loan_status"))
+  test.x <- RemoveVariable(data1[ind,],c("id","loan_status"))
+
+
   
+  # One hot encoding
+  b <- PreProcessingMatrixOutput(train, test)
+  train_x <- b$train
+  test_x <- b$test
+ 
+  set.seed(100)
+  library(glmnet)
+  lr.model <- cv.glmnet(train_x, train.y, family="binomial", alpha=1)
+  lr.probs <- predict(lr.model, newx=test_x, type="response")
+  lr.re <- cbind(testid, lr.probs)
+
+  
+  # log-loss function
+  logLoss = function(y, p){
+    if (length(p) != length(y)){
+      stop('Lengths of prediction and labels do not match.')
+    }
+    
+    if (any(p < 0)){
+      stop('Negative probability provided.')
+    }
+    
+    p = pmax(pmin(p, 1 - 10^(-15)), 10^(-15))
+    mean(ifelse(y == 1, -log(p), -log(1 - p)))
+  }
+  logLoss(test.y,lr.re[,"1"])
+    
 
 
 
