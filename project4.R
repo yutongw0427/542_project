@@ -4,20 +4,6 @@ installIfNeeded <- function(cliblist){
   if(length(libsNeeded)>0) install.packages(libsNeeded)
 }
 installIfNeeded(c("car"))
-# prepare the Data======================
-setwd("~/Desktop/542/project/Project4")
-split <- read.csv("Project4_test_id.csv")
-data <- read.csv("LoanStats_2007_to_2018Q2.csv")
-library(car)
-data[,"loan_status"] <- Recode(data[,"loan_status"],
-                   "c('Fully Paid') = 0;
-                    c('Default','Charged Off') = 1")
-rm <- c("zip_code","emp_title", "title")
-datacl <- data[ , !(names(data) %in% rm)]
-
-
-
-
 
 # Helper Functions ==================================
 # One-Hot encoding
@@ -63,6 +49,47 @@ ProcessWinsorization <- function(train.var, test.var, quant){
   test.var[test.var > threshold] <- threshold
   return(list(train.v = train.var, test.v = test.var))
 }
+                                                        
+# Change NA to specific value
+changeNA <- function(column, repl){
+  is.fac <- 0
+  if(is.factor(column)){
+    column <- as.character(column)
+    is.fac <- 1
+  }
+  ind <- which(is.na(column))
+  column[ind] <- repl
+  if(is.fac == 0)
+    return(column)
+  else
+    return(as.factor(column))
+}
+                                                        
+                                                        
+                                                        
+                                                        
+# prepare the Data======================
+setwd("~/Desktop/542/project/Project4")
+split <- read.csv("Project4_test_id.csv")
+data <- read.csv("LoanStats_2007_to_2018Q2.csv")
+                                                        
+# recode y label
+library(car)
+datacl[,"loan_status"] <- Recode(datacl[,"loan_status"],
+                               "c('Fully Paid') = 0;
+                               c('Default','Charged Off') = 1"
+)
+
+# remove unecessary variables
+rm <- c("zip_code","emp_title", "title")
+datacl <- datacl[ , !(names(datacl) %in% rm)]
+
+# recode missing values
+datacl$mort_acc <- changeNA(datacl$mort_acc, mean(datacl$mort_acc, na.rm = T))
+datacl$emp_length <- changeNA(datacl$emp_length, "missing")
+
+
+                                                        
                                                         
                                                                                                           
 # prepare the train/test splits======================
