@@ -122,7 +122,7 @@ result_lr <- rep(NA, 3)
 data1 <- datacl
 #
   # prepare the train/test splits
-  for(i in 1:3){
+for(i in 1:3) {
   testid <- split[, i]
   ind <- which(data1$id %in% testid)
   train.y <-data1[-ind,"loan_status"] 
@@ -133,23 +133,22 @@ data1 <- datacl
 
   
   # One hot encoding
-  b <- PreProcessingMatrixOutput(train, test)
+  b <- PreProcessingMatrixOutput(train.x, test.x)
   train_x <- b$train
   test_x <- b$test
  
   set.seed(100)
   library(glmnet)
-  lr.model <- cv.glmnet(train_x, train.y, family="binomial", alpha=1)
+  library(doParallel)
+  registerDoParallel(4)
+  # lr.model <- cv.glmnet(train_x, train.y, family="binomial", alpha=1, parallel = TRUE)
+  lr.model <- glmnet(train_x, train.y, family="binomial", alpha=1, lambda = 0.002)
   lr.probs <- predict(lr.model, newx=test_x, type="response")
   output.lr <- cbind(testid, lr.probs)
   colnames(output.lr) <- c("id","prob")
-  
-
-  result_lr[i] <- logLoss(test.y,lr.re[,"prob"])
+  logLoss(test.y, output.lr[,"prob"])
+  result_lr[i] <- logLoss(test.y, output.lr[,"prob"])
 }
-  
-}
-
 
 
 #********** model2 ******************* 
