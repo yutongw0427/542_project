@@ -144,13 +144,20 @@ for(i in 1:3) {
   test.y <- data1[ind,"loan_status"]
   train.x <- RemoveVariable(data1[-ind,],c("id","loan_status"))
   test.x <- RemoveVariable(data1[ind,],c("id","loan_status"))
-
-
+  
+  # Winsorize
+  winz.var <- c("installment" , "annual_inc", "dti" ,"open_acc", "revol_bal", "revol_util")
+  for(var in winz.var){
+    r <- ProcessWinsorization(train.x[, var], test.x[, var], 0.96)
+    train.x[, var] <- r$train.v
+    test.x[, var] <- r$test.v
+  }  
   
   # One hot encoding
   b <- PreProcessingMatrixOutput(train.x, test.x)
   train_x <- b$train
   test_x <- b$test
+  
  
   set.seed(100)
   library(glmnet)
