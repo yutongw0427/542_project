@@ -153,7 +153,38 @@ data1 <- datacl
 
 
 #********** model2 ******************* 
+library(xgboost)
+data2 <- datacl
+rem.var <- c("id","loan_status")
 
+for(i in 1:ncol(split)){
+  testid <- split[, i]
+  ind <- which(data2$id %in% testid)
+  train.y <-data2[-ind,"loan_status"] 
+  test.y <- data2[ind,"loan_status"]
+  tmp <- PreProcessingMatrixOutput(RemoveVariable(data2[-ind,],c("id","loan_status")), 
+                                   RemoveVariable(data2[ind,],c("id","loan_status")))
+  train.x <- tmp$train
+  test.x <- tmp$test
+  xgb.model <- xgboost(data = train.x, label = as.factor(train.y), 
+                       nrounds = 120, max_depth = 5, eta = 0.2, num_parallel_tree = 3,
+                       colsample_bytree = 0.6, subsample = 0.6, verbose=1)
+  xgboost.prob <- predict(xgb.model, test.x) - 1
+  ind <- which(xgboost.prob > 0)
+  logLoss(test.y[ind], xgboost.prob[ind])
+}
+                                                        
+                                                        
+                                                        
+                                                        
+                                                        
+                                                        
+                                                        
+                                                        
+                                                        
+                                                        
+                                                        
+                                                        
 # outname <-  paste("mysubmission_test",i,".txt",sep="")
 # write.table(output, file=outname, row.names = FALSE, sep=",", col.names = TRUE)
 
