@@ -102,16 +102,31 @@ rm <- c("zip_code","emp_title", "title")
 datacl <- datacl[ , !(names(datacl) %in% rm)]
 
 # recode missing values
-naVraibles <- c("mort_acc", "dti", "revol_util", "pub_rec_bankruptcies")
+naVraibles <- c("dti", "revol_util")
 for(i in naVraibles){
-  datacl[, i] <- changeNA(datacl[, i], mean(datacl[, i], na.rm = T))
+  datacl[, i] <- changeNA(datacl[, i], median(datacl[, i], na.rm = T))
 }
+tmp <- 100000
+datacl$mort_acc <- changeNA(datacl$mort_acc, tmp)
 datacl$emp_length <- changeNA(datacl$emp_length, "missing")
 
 #calculate the month
 date <- as.Date(paste("1-", data[,"earliest_cr_line"], sep=""),format="%d-%b-%Y")
 datacl[,"earliest_cr_line"] <- mondf(date, "2015-04-01")
 
+# Perform grouping in some variables
+  ## Group: 0,1,2,3,4,5,6
+datacl$pub_rec[datacl$pub_rec > 5] <- 6
+datacl$pub_rec <- as.factor(datacl$pub_rec)
+
+  ## Group: 0,1,2,3,4,5,6,7,10000 (10000 is missing values)
+datacl$mort_acc[datacl$mort_acc > 7 & datacl$mort_acc < tmp] <- 7
+datacl$mort_acc <- as.factor(datacl$mort_acc)
+
+  ## Group: 0, 1, 2 (2 is missing values)
+datacl$pub_rec_bankruptcies[datacl$pub_rec_bankruptcies > 0] <- 1
+datacl$pub_rec_bankruptcies[is.na(datacl$pub_rec_bankruptcies)] <- 2
+datacl$pub_rec_bankruptcies <- as.factor(datacl$pub_rec_bankruptcies)
 
 
 
