@@ -70,7 +70,20 @@ lt$year*12 + lt$mon }
 # compute a month difference as a difference between two monnb's
 mondf <- function(d1, d2) { monnb(d2) - monnb(d1) }
 
-
+                                                          # log-loss function
+  logLoss = function(y, p){
+    if (length(p) != length(y)){
+      stop('Lengths of prediction and labels do not match.')
+    }
+    
+    if (any(p < 0)){
+      stop('Negative probability provided.')
+    }
+    
+    p = pmax(pmin(p, 1 - 10^(-15)), 10^(-15))
+    mean(ifelse(y == 1, -log(p), -log(1 - p)))
+  }
+                                                        
 # Data Processing =========================================
 setwd("/Users/Meana/Documents/4.STAT542/Project_4")
 
@@ -105,21 +118,11 @@ datacl[,"earliest_cr_line"] <- mondf(date, "2015-04-01")
 # Building Classifiers =================================
 
 #********** model1: Lasso Logistic Regression ******************* 
-result_lasso <- rep(NA, 3)
-data1 <- datacl
-for(i in 1:ncol(split)){
-  # prepare the train/test splits
-  testid <- split[, i]
-  ind <- which(data1$id %in% testid)
-  test <- data1[ind,]
-  train <- data1[-ind,]
-  
-  # One hot encoding
-result_lasso <- rep(NA, 3)
+result_lr <- rep(NA, 3)
 data1 <- datacl
 #
   # prepare the train/test splits
-  i <- 1
+  for(i in 1:3){
   testid <- split[, i]
   ind <- which(data1$id %in% testid)
   train.y <-data1[-ind,"loan_status"] 
@@ -141,24 +144,10 @@ data1 <- datacl
   lr.re <- cbind(testid, lr.probs)
 
   
-  # log-loss function
-  logLoss = function(y, p){
-    if (length(p) != length(y)){
-      stop('Lengths of prediction and labels do not match.')
-    }
-    
-    if (any(p < 0)){
-      stop('Negative probability provided.')
-    }
-    
-    p = pmax(pmin(p, 1 - 10^(-15)), 10^(-15))
-    mean(ifelse(y == 1, -log(p), -log(1 - p)))
-  }
-  logLoss(test.y,lr.re[,"1"])
-    
 
-
-
+  result_lr[i] <- logLoss(test.y,lr.re[,"1"])
+}
+  
 }
 
 
