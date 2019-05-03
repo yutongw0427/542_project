@@ -141,29 +141,19 @@ data1 <- datacl
   library(glmnet)
   lr.model <- cv.glmnet(train_x, train.y, family="binomial", alpha=1)
   lr.probs <- predict(lr.model, newx=test_x, type="response")
-  lr.re <- cbind(testid, lr.probs)
-
+  output.lr <- cbind(testid, lr.probs)
+  colnames(output.lr) <- c("id","prob")
   
 
-  result_lr[i] <- logLoss(test.y,lr.re[,"1"])
+  result_lr[i] <- logLoss(test.y,lr.re[,"prob"])
 }
   
 }
-
-
-
-
-
 
 
 
 #********** model2 ******************* 
 
-
-
-#********** model3 ******************* 
-
-# colnames(output) <- c("id", "prob")
 # outname <-  paste("mysubmission_test",i,".txt",sep="")
 # write.table(output, file=outname, row.names = FALSE, sep=",", col.names = TRUE)
 
