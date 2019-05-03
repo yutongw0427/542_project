@@ -6,11 +6,12 @@ installIfNeeded <- function(cliblist){
 installIfNeeded(c("car"))
 
 # Helper functions =========================================
-PreProcessingMatrixOutput <- function(train.data, test.data){
+PreProcessingMatrixOutput <- function(train.data, test.data, y){
   # generate numerical matrix of the train/test
   # assume train.data, test.data have the same columns
   categorical.vars <- colnames(train.data)[which(sapply(train.data, 
                                                         function(x) is.factor(x)))]
+  categorical.vars <- categorical.vars[!categorical.vars %in% y]
   train.matrix <- train.data[, !colnames(train.data) %in% categorical.vars, drop=FALSE]
   test.matrix <- test.data[, !colnames(train.data) %in% categorical.vars, drop=FALSE]
   n.train <- nrow(train.data)
@@ -81,15 +82,17 @@ datacl <- data
 library(car)
 datacl[,"loan_status"] <- Recode(datacl[,"loan_status"],
                                "c('Fully Paid') = 0;
-                               c('Default','Charged Off') = 1"
-)
+                               c('Default','Charged Off') = 1")
 
 # remove unecessary variables
 rm <- c("zip_code","emp_title", "title")
 datacl <- datacl[ , !(names(datacl) %in% rm)]
 
 # recode missing values
-datacl$mort_acc <- changeNA(datacl$mort_acc, mean(datacl$mort_acc, na.rm = T))
+naVraibles <- c("mort_acc", "dti", "revol_util", "pub_rec_bankruptcies")
+for(i in naVraibles){
+  datacl[, i] <- changeNA(datacl[, i], mean(datacl[, i], na.rm = T))
+}
 datacl$emp_length <- changeNA(datacl$emp_length, "missing")
 
 #calculate the month
@@ -100,18 +103,16 @@ datacl[,"earliest_cr_line"] <- mondf(date, "2015-04-01")
 
 
 # Building Classifiers =================================
-result <- matrix(NA, ncol=3, nrow=3)
-colnames(result) <-c("m1","m2","m3")
 
 #********** model1: Lasso Logistic Regression ******************* 
 result_lasso <- rep(NA, 3)
-
+data1 <- datacl
 for(i in 1:ncol(split)){
   # prepare the train/test splits
   testid <- split[, i]
-  ind <- which(datacl$id %in% testid)
-  test <- data[ind,]
-  train <- data[-ind,]
+  ind <- which(data1$id %in% testid)
+  test <- data1[ind,]
+  train <- data1[-ind,]
   
   # One hot encoding
   
