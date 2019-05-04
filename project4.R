@@ -6,12 +6,11 @@ installIfNeeded <- function(cliblist){
 installIfNeeded(c("car"))
 
 # Helper functions =========================================
-PreProcessingMatrixOutput <- function(train.data, test.data, y){
+PreProcessingMatrixOutput <- function(train.data, test.data){
   # generate numerical matrix of the train/test
   # assume train.data, test.data have the same columns
   categorical.vars <- colnames(train.data)[which(sapply(train.data, 
                                                         function(x) is.factor(x)))]
-  categorical.vars <- categorical.vars[!categorical.vars %in% y]
   train.matrix <- train.data[, !colnames(train.data) %in% categorical.vars, drop=FALSE]
   test.matrix <- test.data[, !colnames(train.data) %in% categorical.vars, drop=FALSE]
   n.train <- nrow(train.data)
