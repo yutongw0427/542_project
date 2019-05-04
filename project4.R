@@ -11,6 +11,7 @@ oneHotEncoding <- function(train.data, test.data){
   # assume train.data, test.data have the same columns
   categorical.vars <- colnames(train.data)[which(sapply(train.data, 
                                                         function(x) is.factor(x)))]
+  print(categorical.vars)
   train.matrix <- train.data[, !colnames(train.data) %in% categorical.vars, drop=FALSE]
   test.matrix <- test.data[, !colnames(train.data) %in% categorical.vars, drop=FALSE]
   n.train <- nrow(train.data)
@@ -23,7 +24,11 @@ oneHotEncoding <- function(train.data, test.data){
     col.names <- NULL
     for(j in 1:m){
       tmp.train[train.data[, var]==mylevels[j], j] <- 1
-      tmp.test[test.data[, var]==mylevels[j], j] <- 1
+      print(paste(var, j))
+      if(mylevels[j] %in% levels(test.data[, var])){
+        tmp <- as.character(mylevels[j])
+        tmp.test[test.data[, var]== tmp, j] <- 1
+      }
       col.names <- c(col.names, paste(var, '_', mylevels[j], sep=''))
     }
     colnames(tmp.train) <- col.names
@@ -66,11 +71,12 @@ changeNA <- function(column, repl){
 #Function of Calculating the month
 monnb <- function(d) { lt <- as.POSIXlt(as.Date(d, origin="1940-01-01")); 
 lt$year*12 + lt$mon } 
+
 # compute a month difference as a difference between two monnb's
-mondf <- function(d1, d2) { monnb(d2) - monnb(d1) }
+mondf <- function(d1, d2) { monnb(d2) - monnb(d1)}
 
 
-# log-loss function
+# Function of log loss
 logLoss = function(y, p){
   if (length(p) != length(y)){
     stop('Lengths of prediction and labels do not match.')
@@ -84,20 +90,26 @@ logLoss = function(y, p){
   mean(ifelse(y == 1, -log(p), -log(1 - p)))
 }
 
+
 # Data Processing =========================================
 # setwd("/Users/Meana/Documents/4.STAT542/Project_4")
 setwd("~/Desktop/542/project/Project4")
 split <- read.csv("Project4_test_id.csv")
 data <- read.csv("LoanStats_2007_to_2018Q2.csv")
+     
+set.seed(5798)
                                                         
-set.seed(100)                                                      
 library(car)
-                                                        
 processData <- function(datacl){
 # recode y label
     datacl[,"loan_status"] <- Recode(datacl[,"loan_status"],
-                                     "c('Fully Paid', 'Current', 'In Grace Period', 'Late (16-30 days)', 'Late (31-120 days)') = 0;
+                                     "c('Fully Paid') = 0;
                                      c('Default','Charged Off') = 1")
+    # if(lenght(unique(datacl[, "loan_status"])) < 3){
+    #   others <- c(levels(datacl[, "loan_status"])[-(1:2)])
+    #   datacl[,"loan_status"] <- Recode(datacl[,"loan_status"],
+    #                                    "c('Current', 'In Grace Period', '') = 0")
+    # }
   # remove unecessary variables
   rm <- c("zip_code","emp_title", "title", "grade")
   datacl <- datacl[ , !(names(datacl) %in% rm)]
@@ -137,11 +149,10 @@ processData <- function(datacl){
                                        "c('OTHER', 'NONE', 'ANY') = 'OTHER'")
   return(datacl)
 }
-                                                        
-datacl <- processData(data)
 
+datacl <- processData(data)
                                                         
-                                                        
+
                                                         
 # Building Classifiers =================================
 
@@ -155,12 +166,12 @@ lloss_xgboost <- rep(NA, 3)
   ind <- which(data2$id %in% testid)
   train.y <-data2[-ind,"loan_status"] 
   test.y <- data2[ind,"loan_status"]
-  tmp <- PreProcessingMatrixOutput(RemoveVariable(data2[-ind,],c("id","loan_status")), 
+  tmp <- oneHotEncoding(RemoveVariable(data2[-ind,],c("id","loan_status")), 
                                    RemoveVariable(data2[ind,],c("id","loan_status")))
   train.x <- tmp$train
   test.x <- tmp$test
   xgb.model <- xgboost(data = train.x, label = (as.numeric(train.y)-1), 
-                       nrounds = 200,num_parallel_tree = 3, 
+                       nrounds = 120,num_parallel_tree = 3, 
                        colsample_bytree = 0.6, subsample = 0.6, 
                        max_depth = 3, eta = 0.4, verbose=1, objective = "binary:logistic" )
 for(i in 1:ncol(split)){
@@ -181,29 +192,42 @@ for(i in 1:ncol(split)){
   
 # ！！！！所有前面最开始那个section的function你都重新粘贴一遍，改动有点多！！！！！！
                                                         
-testq3 <- read.csv ("LoanStats_2018Q3.csv")
-testq4 <- read.csv ("LoanStats_2018Q4.csv")
 vars <- colnames(datacl)
 y <- "loan_status"
-rm.var <- c("id", "loan_status")
+rem.var <- c("id", "loan_status", outname)
 predicting <- funciton(train, test){
+  test <- testq3
   test <- test[, colnames(test) %in% vars]
   
-  # 以下两个variable在testdata里都是带百分号的
   test$revol_util <- as.numeric(sub("%", "", test$revol_util))
   test$int_rate <- as.numeric(sub("%", "", test$int_rate))
-  
-  # term里面都多了个空格
   test$term <- as.factor(sub(" ", "", as.character(test$term)))
   
   test <-processData(test)
+  test.id <- test[, "id"]
   train.y <- train[, y]
-  test.y <- test[, y]
   tmp <- oneHotEncoding(RemoveVariable(train, rem.var),
                         RemoveVariable(test, rem.var))
   train.x <- tmp$train
   test.x <- tmp$test
+  
+  xgb.model <- xgboost(data = train.x, label = (as.numeric(train.y)-1), 
+                       nrounds = ,num_parallel_tree = 3, 
+                       colsample_bytree = 0.6, subsample = 0.6, 
+                       max_depth = 3, eta = 0.4, verbose=1, 
+                       objective = "binary:logistic" )
+  xgboost.prob <- predict(xgb.model, test.x, type = "prob")
+  print(logLoss(test.y, xgboost.prob))
+  out <- cbind(test.id, xgboost.prob)
+  write.table(out, file=outname, row.names = FALSE, sep=",", col.names = TRUE)
 }
+
+testq3 <- read.csv("LoanStats_2018Q3.csv")
+testq4 <- read.csv("LoanStats_2018Q4.csv")
+
+predicting(datacl, testq3, "mysubmission_2018Q3.txt")
+predicting(datacl, testq3, "mysubmission_2018Q4.txt")
+
 
 # write.table(mysubmission_2018Q3.txt, file=outname, row.names = FALSE, sep=",", col.names = TRUE)
 # write.table(mysubmission_2018Q4.txt, file=outname, row.names = FALSE, sep=",", col.names = TRUE)
