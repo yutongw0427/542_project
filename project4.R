@@ -66,12 +66,7 @@ changeNA <- function(column, repl){
   else
     return(as.factor(column))
 }
-
-#Function of Calculating the month
-data[,"earliest_cr_line"] <- as.factor(substr(data[,"earliest_cr_line"],5,8))
-
-                                                        
-                                                        
+                                                                                                         
 # Function of log loss**********************delete*****************************************
 logLoss = function(y, p){
   if (length(p) != length(y)){
