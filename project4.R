@@ -91,6 +91,28 @@ logLoss = function(y, p){
 }
 
 
+oneHotOnTraining <- function(train.data){
+  categorical.vars <- colnames(train.data)[which(sapply(train.data, 
+                                                        function(x) is.factor(x)))]
+  train.matrix <- train.data[, !colnames(train.data) %in% categorical.vars, drop=FALSE]
+  n.train <- nrow(train.data)
+  for(var in categorical.vars){
+    mylevels <- sort(unique(train.data[, var]))
+    m <- length(mylevels)
+    tmp.train <- matrix(0, n.train, m)
+    col.names <- NULL
+    for(j in 1:m){
+      tmp.train[train.data[, var]==mylevels[j], j] <- 1
+      col.names <- c(col.names, paste(var, '_', mylevels[j], sep=''))
+    }
+    colnames(tmp.train) <- col.names
+    train.matrix <- cbind(train.matrix, tmp.train)
+  }
+  return(train.matrix)
+}
+                                                        
+                                                        
+                                                        
 # Data Processing =========================================
 # setwd("/Users/Meana/Documents/4.STAT542/Project_4")
 setwd("~/Desktop/542/project/Project4")
