@@ -3,14 +3,15 @@ installIfNeeded <- function(cliblist){
   libsNeeded <- libsNeeded[!(libsNeeded %in% installed.packages()[,"Package"])]
   if(length(libsNeeded)>0) install.packages(libsNeeded)
 }
-installIfNeeded(c("car"))
+installIfNeeded(c("car", "xgboost"))
 
 # Helper functions =========================================
-PreProcessingMatrixOutput <- function(train.data, test.data){
+PreProcessingMatrixOutput <- function(train.data, test.data, y){
   # generate numerical matrix of the train/test
   # assume train.data, test.data have the same columns
   categorical.vars <- colnames(train.data)[which(sapply(train.data, 
                                                         function(x) is.factor(x)))]
+  categorical.vars <- categorical.vars[!categorical.vars %in% y]
   train.matrix <- train.data[, !colnames(train.data) %in% categorical.vars, drop=FALSE]
   test.matrix <- test.data[, !colnames(train.data) %in% categorical.vars, drop=FALSE]
   n.train <- nrow(train.data)
@@ -97,42 +98,23 @@ datacl[,"loan_status"] <- Recode(datacl[,"loan_status"],
                                c('Default','Charged Off') = 1")
 
 # remove unecessary variables
-rm <- c("zip_code","emp_title", "title", "grade")
+rm <- c("zip_code","emp_title", "title")
 datacl <- datacl[ , !(names(datacl) %in% rm)]
 
 # recode missing values
-naVraibles <- c("dti", "revol_util")
+naVraibles <- c("mort_acc", "dti", "revol_util", "pub_rec_bankruptcies")
 for(i in naVraibles){
-  datacl[, i] <- changeNA(datacl[, i], median(datacl[, i], na.rm = T))
+  datacl[, i] <- changeNA(datacl[, i], mean(datacl[, i], na.rm = T))
 }
-tmp <- 100000
-datacl$mort_acc <- changeNA(datacl$mort_acc, tmp)
 datacl$emp_length <- changeNA(datacl$emp_length, "missing")
 
 #calculate the month
 date <- as.Date(paste("1-", data[,"earliest_cr_line"], sep=""),format="%d-%b-%Y")
 datacl[,"earliest_cr_line"] <- mondf(date, "2015-04-01")
 
-# Perform grouping in some variables
-  ## Group: 0,1,2,3,4,5,6
-datacl$pub_rec[datacl$pub_rec > 5] <- 6
-datacl$pub_rec <- as.factor(datacl$pub_rec)
 
-  ## Group: 0,1,2,3,4,5,6,7,10000 (10000 is missing values)
-datacl$mort_acc[datacl$mort_acc > 7 & datacl$mort_acc < tmp] <- 7
-datacl$mort_acc <- as.factor(datacl$mort_acc)
 
-  ## Group: 0, 1, 2 (2 is missing values)
-datacl$pub_rec_bankruptcies[datacl$pub_rec_bankruptcies > 0] <- 1
-datacl$pub_rec_bankruptcies[is.na(datacl$pub_rec_bankruptcies)] <- 2
-datacl$pub_rec_bankruptcies <- as.factor(datacl$pub_rec_bankruptcies)
 
-  ## Group: RENT, MORTGAGE, OWN, OTHER
-datacl[, "home_ownership"] <- Recode(datacl[, "home_ownership"], 
-                                     "c('OTHER', 'NONE', 'ANY') = 'OTHER'")
-
-                                                        
-                                                        
 # Building Classifiers =================================
 
 #********** model1: Lasso Logistic Regression ******************* 
@@ -147,20 +129,13 @@ for(i in 1:3) {
   test.y <- data1[ind,"loan_status"]
   train.x <- RemoveVariable(data1[-ind,],c("id","loan_status"))
   test.x <- RemoveVariable(data1[ind,],c("id","loan_status"))
-  
-  # Winsorize
-  winz.var <- c("installment" , "annual_inc", "dti" ,"open_acc", "revol_bal", "revol_util")
-  for(var in winz.var){
-    r <- ProcessWinsorization(train.x[, var], test.x[, var], 0.96)
-    train.x[, var] <- r$train.v
-    test.x[, var] <- r$test.v
-  }  
+
+
   
   # One hot encoding
   b <- PreProcessingMatrixOutput(train.x, test.x)
   train_x <- b$train
   test_x <- b$test
-  
  
   set.seed(100)
   library(glmnet)
@@ -199,27 +174,10 @@ for(i in 1:ncol(split)){
 }
                                                         
                                                         
-#********** model3: Random Forest ******************* 
-library(randomForest)
-data3 <- datacl
-rm.var <- c("id")
-y <- "loan_status"
-for(i in 1:ncol(split)){
-  testid <- split[, i]
-  ind <- which(data3$id %in% testid)
-  test.y <- data3[ind, y]
-  train <- RemoveVariable(data3[-ind, ], rm.var)
-  test.x <- RemoveVariable(data3[ind, ], c(rm.var, y))
-  rf_fit3 = randomForest(loan_status ~., 
-                         data = train, 
-                         ntree = 100, 
-                         mtry = 5, 
-                         nodesize = 3, 
-                         sampsize = 10000, 
-                         importance = TRUE)
-  pred3 = predict(rf_fit3, test.x, type = "prob")
-  logLoss(test.y, pred3[,2])
-}                                   
+                                                        
+                                                        
+                                                        
+                                                        
                                                         
                                                         
                                                         
