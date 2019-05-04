@@ -166,7 +166,10 @@ for(i in 1:ncol(split)){
   # write.table(output, file=outname, row.names = FALSE, sep=",", col.names = TRUE)
 }
 
-                                                        
+#lloss_xgboost
+#[1] 0.4491859 0.4486139 0.4472861
+#mean(lloss_xgboost)
+#[1] 0.448362                                                        
                                                         
 # Build the final classifier ==============================================================================
 rem.var <- c("id", "loan_status")
