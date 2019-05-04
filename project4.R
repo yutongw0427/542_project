@@ -188,10 +188,7 @@ for(i in 1:ncol(split)){
 
 # Build the final classifier======================
 #Model Evaluation=================================
-                                                        
-  
-# ！！！！所有前面最开始那个section的function你都重新粘贴一遍，改动有点多！！！！！！
-                                                        
+                                                                                                                
 vars <- colnames(datacl)
 y <- "loan_status"
 rem.var <- c("id", "loan_status", outname)
@@ -217,7 +214,6 @@ predicting <- funciton(train, test){
                        max_depth = 3, eta = 0.4, verbose=1, 
                        objective = "binary:logistic" )
   xgboost.prob <- predict(xgb.model, test.x, type = "prob")
-  print(logLoss(test.y, xgboost.prob))
   out <- cbind(test.id, xgboost.prob)
   write.table(out, file=outname, row.names = FALSE, sep=",", col.names = TRUE)
 }
