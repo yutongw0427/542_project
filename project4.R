@@ -184,7 +184,11 @@ y <- "loan_status"
 rm.var <- c("id", "loan_status")
 predicting <- funciton(train, test){
   test <- test[, colnames(test) %in% vars]
-  test$revol_util <- as.numeric(sub("%", "", test$revol_util))
+  
+  # 以下两个variable在testdata里都是带百分号的
+  test$revol_util <- as.numeric(sub("%", "", test$revol_util))  
+  test$int_rate <- as.numeric(sub("%", "", test$int_rate))
+  
   test <-processData(test)
   train.y <- train[, y]
   test.y <- test[, y]
