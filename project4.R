@@ -11,7 +11,6 @@ oneHotEncoding <- function(train.data, test.data){
   # assume train.data, test.data have the same columns
   categorical.vars <- colnames(train.data)[which(sapply(train.data, 
                                                         function(x) is.factor(x)))]
-  print(categorical.vars)
   train.matrix <- train.data[, !colnames(train.data) %in% categorical.vars, drop=FALSE]
   test.matrix <- test.data[, !colnames(train.data) %in% categorical.vars, drop=FALSE]
   n.train <- nrow(train.data)
