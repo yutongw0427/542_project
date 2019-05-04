@@ -98,7 +98,7 @@ datacl[,"loan_status"] <- Recode(datacl[,"loan_status"],
                                c('Default','Charged Off') = 1")
 
 # remove unecessary variables
-rm <- c("zip_code","emp_title", "title")
+rm <- c("zip_code","emp_title", "title", "grade")
 datacl <- datacl[ , !(names(datacl) %in% rm)]
 
 # recode missing values
@@ -128,8 +128,12 @@ datacl$pub_rec_bankruptcies[datacl$pub_rec_bankruptcies > 0] <- 1
 datacl$pub_rec_bankruptcies[is.na(datacl$pub_rec_bankruptcies)] <- 2
 datacl$pub_rec_bankruptcies <- as.factor(datacl$pub_rec_bankruptcies)
 
+  ## Group: RENT, MORTGAGE, OWN, OTHER
+datacl[, "home_ownership"] <- Recode(datacl[, "home_ownership"], 
+                                     "c('OTHER', 'NONE', 'ANY') = 'OTHER'")
 
-
+                                                        
+                                                        
 # Building Classifiers =================================
 
 #********** model1: Lasso Logistic Regression ******************* 
@@ -196,10 +200,27 @@ for(i in 1:ncol(split)){
 }
                                                         
                                                         
-                                                        
-                                                        
-                                                        
-                                                        
+#********** model3: Random Forest ******************* 
+library(randomForest)
+data3 <- datacl
+rm.var <- c("id")
+y <- "loan_status"
+for(i in 1:ncol(split)){
+  testid <- split[, i]
+  ind <- which(data3$id %in% testid)
+  test.y <- data3[ind, y]
+  train <- RemoveVariable(data3[-ind, ], rm.var)
+  test.x <- RemoveVariable(data3[ind, ], c(rm.var, y))
+  rf_fit3 = randomForest(loan_status ~., 
+                         data = train, 
+                         ntree = 100, 
+                         mtry = 5, 
+                         nodesize = 3, 
+                         sampsize = 10000, 
+                         importance = TRUE)
+  pred3 = predict(rf_fit3, test.x, type = "prob")
+  logLoss(test.y, pred3[,2])
+}                                   
                                                         
                                                         
                                                         
