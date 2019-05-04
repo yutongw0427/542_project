@@ -203,8 +203,9 @@ train.x <- tmpQ3$train.x
 xgb.model <- xgboost(data = train.x, label = (as.numeric(train.y)-1), 
                      nrounds =120,subsample = 0.6,eval_metric="logloss",
                      max_depth = 3, eta = 0.4, verbose=1, objective = "binary:logistic" )
+#train-logloss:0.447171 
+#Calculate by the given function :0.4471651
                                                         
-
 # Build the final classifier ==============================================================================
 pred.prob.Q3 <- predict(xgb.model, tmpQ3$test.x, type = "prob")
 pred.prob.Q4 <- preodct(xgb.model, tmpQ4$test.x, type = "prob")
