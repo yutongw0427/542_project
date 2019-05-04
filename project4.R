@@ -24,7 +24,6 @@ oneHotEncoding <- function(train.data, test.data){
     col.names <- NULL
     for(j in 1:m){
       tmp.train[train.data[, var]==mylevels[j], j] <- 1
-      print(paste(var, j))
       if(mylevels[j] %in% levels(test.data[, var])){
         tmp <- as.character(mylevels[j])
         tmp.test[test.data[, var]== tmp, j] <- 1
@@ -71,6 +70,8 @@ changeNA <- function(column, repl){
 #Function of Calculating the month
 data[,"earliest_cr_line"] <- as.factor(substr(data[,"earliest_cr_line"],5,8))
 
+                                                        
+                                                        
 # Function of log loss**********************delete*****************************************
 logLoss = function(y, p){
   if (length(p) != length(y)){
@@ -114,7 +115,7 @@ processData <- function(data){
   data$mort_acc <- changeNA(data$mort_acc, tmp)
   data$emp_length <- changeNA(data$emp_length, "missing")
   
-  #calculate the month
+  # Take the year of earliest credit line
   data[,"earliest_cr_line"] <- as.factor(substr(data[,"earliest_cr_line"],5,8))
   
   # Perform grouping in some variables
@@ -174,22 +175,46 @@ for(i in 1:ncol(split)){
 # Build the final classifier======================
 rem.var <- c("id", "loan_status")
 train.y <- data[, "loan_status"]
-train.x <- oneHotOnTraining(RemoveVariable(data, rem.var))
 
-xgb.model <- xgboost(data = train.x, label = (as.numeric(train.y)-1), 
-                     nrounds = ,num_parallel_tree = 3, 
-                     colsample_bytree = 0.6, subsample = 0.6, 
-                     max_depth = 3, eta = 0.4, verbose=1, 
-                     objective = "binary:logistic" )
-xgboost.prob <- predict(xgb.model, train.y, type = "prob")
-logLoss(test.y, xgboost.prob)
+process <- function(train, test){
+  vars <- colnames(train)
+  test <- test[, colnames(test) %in% vars]
+  
+  test$revol_util <- as.numeric(sub("%", "", test$revol_util))
+  test$int_rate <- as.numeric(sub("%", "", test$int_rate))
+  test$term <- as.factor(sub(" ", "", as.character(test$term)))
+  
+  test <-processData(test)
+  test.id <- test[, "id"]
+  tmp <- oneHotEncoding(RemoveVariable(train, rem.var),
+                        RemoveVariable(test, rem.var))
+  train.x <- tmp$train
+  test.x <- tmp$test
+  return(list("train.x" = train.x,"test.x" = test.x, "test.id" = test.id))
+}
 
-#Model Evaluation=================================
 testq3 <- read.csv("LoanStats_2018Q3.csv")
 testq4 <- read.csv("LoanStats_2018Q4.csv")
 
-predicting(data, testq3, "mysubmission_2018Q3.txt")
-predicting(data, testq3, "mysubmission_2018Q4.txt")
+tmpQ3 <- process(data, testq3)
+tmpQ4 <- process(data, testq4)
+
+train.x <- tmpQ3$train.x
+
+xgb.model <- xgboost(data = train.x, label = (as.numeric(train.y)-1), 
+                     nrounds =120,subsample = 0.6,eval_metric="logloss",
+                     max_depth = 3, eta = 0.4, verbose=1, objective = "binary:logistic" )
+
+pred.prob.Q3 <- predict(xgb.model, tmpQ3$test.x, type = "prob")
+pred.prob.Q4 <- preodct(xgb.model, tmpQ4$test.x, type = "prob")
+  
+outQ3 <- cbind(tmpQ3$test.id, pred.prob.Q3)
+outQ4 <- cbind(tmpQ4$test.id, pred.prob.Q4)
+
+write.table(outQ3, file="mysubmission_2018Q3.txt", row.names = FALSE, sep=",", col.names = TRUE)
+write.table(outQ4, file="mysubmission_2018Q4.txt", row.names = FALSE, sep=",", col.names = TRUE)
+
+
 
 # write.table(mysubmission_2018Q3.txt, file=outname, row.names = FALSE, sep=",", col.names = TRUE)
 # write.table(mysubmission_2018Q4.txt, file=outname, row.names = FALSE, sep=",", col.names = TRUE)
