@@ -55,7 +55,7 @@ changeNA <- function(column, repl){
     column <- as.character(column)
     is.fac <- 1
   }
-  ind <- which(is.na(column))
+  ind <- c(which(is.na(column)), which(column == "n/a"))
   column[ind] <- repl
   if(is.fac == 0)
     return(column)
@@ -176,7 +176,11 @@ for(i in 1:ncol(split)){
 
 
 # Build the final classifier======================
-#Model Evaluation=================================                    
+#Model Evaluation=================================
+                                                        
+  
+# ！！！！所有前面最开始那个section的function你都重新粘贴一遍，改动有点多！！！！！！
+                                                        
 testq3 <- read.csv ("LoanStats_2018Q3.csv")
 testq4 <- read.csv ("LoanStats_2018Q4.csv")
 vars <- colnames(datacl)
@@ -186,8 +190,11 @@ predicting <- funciton(train, test){
   test <- test[, colnames(test) %in% vars]
   
   # 以下两个variable在testdata里都是带百分号的
-  test$revol_util <- as.numeric(sub("%", "", test$revol_util))  
+  test$revol_util <- as.numeric(sub("%", "", test$revol_util))
   test$int_rate <- as.numeric(sub("%", "", test$int_rate))
+  
+  # term里面都多了个空格
+  test$term <- as.factor(sub(" ", "", as.character(test$term)))
   
   test <-processData(test)
   train.y <- train[, y]
