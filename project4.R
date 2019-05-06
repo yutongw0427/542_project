@@ -3,7 +3,7 @@ installIfNeeded <- function(cliblist){
   libsNeeded <- libsNeeded[!(libsNeeded %in% installed.packages()[,"Package"])]
   if(length(libsNeeded)>0) install.packages(libsNeeded)
 }
-installIfNeeded(c("car","xgboost"))
+installIfNeeded(c("car","xgboost","lime"))
 
 # Helper functions =========================================
 oneHotEncoding <- function(train.data, test.data){
@@ -150,6 +150,7 @@ test.x <- tmp$test
 xgb.model <- xgboost(data = train.x, label = (as.numeric(train.y)-1), 
                      nrounds =120,subsample = 0.6,eval_metric="logloss",
                      max_depth = 3, eta = 0.4, verbose=1, objective = "binary:logistic" )
+
 #Calculate the logloss on the three splits
 for(i in 1:ncol(split)){
   testid <- split[, i]
@@ -184,12 +185,13 @@ process <- function(train, test){
   test$term <- as.factor(sub(" ", "", as.character(test$term)))
   
   test <-processData(test)
+  test.y <- test[, "loan_status"]
   test.id <- test[, "id"]
   tmp <- oneHotEncoding(RemoveVariable(train, rem.var),
                         RemoveVariable(test, rem.var))
   train.x <- tmp$train
   test.x <- tmp$test
-  return(list("train.x" = train.x,"test.x" = test.x, "test.id" = test.id))
+  return(list("train.x" = train.x,"test.x" = test.x, "test.id" = test.id，"test.y" = test.y))
 }
 
 testq3 <- read.csv("LoanStats_2018Q3.csv")
@@ -206,17 +208,112 @@ xgb.model <- xgboost(data = train.x, label = (as.numeric(train.y)-1),
 #train-logloss:0.447171 
 #Calculate by the given function :0.4471651
                                                         
-# Build the final classifier ==============================================================================
-pred.prob.Q3 <- predict(xgb.model, tmpQ3$test.x, type = "prob")
-pred.prob.Q4 <- preodct(xgb.model, tmpQ4$test.x, type = "prob")
-  
-outQ3 <- cbind(tmpQ3$test.id, pred.prob.Q3)
-outQ4 <- cbind(tmpQ4$test.id, pred.prob.Q4)
+# Output the results of test data sets ==============================================================================
+for (i in (3:4)){
+  i <-3
+  tmp <- get(paste("tmpQ",i, sep=""))
+  pred.prob<- predict(xgb.model, tmp$test.x, type = "prob")
+  out <- cbind("id"=tmp$test.id, "prob"=pred.prob)
+  outname <-  paste("mysubmission_2018Q",i,".txt",sep="")
+  write.table(out, file=outname, row.names = FALSE, sep=",", col.names = TRUE)
+}
 
-write.table(outQ3, file="mysubmission_2018Q3.txt", row.names = FALSE, sep=",", col.names = TRUE)
-write.table(outQ4, file="mysubmission_2018Q4.txt", row.names = FALSE, sep=",", col.names = TRUE)
+#Analyze the results(white box)=======================================================================================
+set.seed(5798)
+library(lime)
+for (i in (3:4)){
+tmp <- get(paste("tmpQ",i, sep=""))
+test.y <- tmp$test.y
+ind <- which(test.y %in% c("0", "1"))
+test.x <- as.data.frame(tmp$test.x[ind,])
+sample <- sample(c(1:dim(test.x)[1]), 4) 
+explainer <- lime(test.x[-sample,], xgb.model, bin_continuous = TRUE, n_bins = 2, quantile_bins = FALSE)
+explanation <- explain(test.x[sample, ],explainer, labels = "1", n_features = 5)
+# # Only showing part of output for better printing
+# explanation[2:9]
+abc <-plot_features(explanation)
+print(abc)
+}
 
+#Test the logloss on the new test data
+  # test <- testq4
+  # tmp <- tmpQ4
+  # test[,"loan_status"] <- Recode(test[,"loan_status"],
+  #                              "c('Fully Paid') = 0;
+  #                              c('Default','Charged Off') = 1")
+  # ind <- which(test[,"loan_status"] %in% c("0", "1"))
+  # test.x <- tmp$test.x[ind,]
+  # test.y <- test$loan_status[ind]
+  # prob <- predict(xgb.model, test.x, type = "prob")
+  # logLoss(test.y, prob)
 
+#===================Other models==============================================
+##Random forest
+#********** model3: Random Forest ******************* 
+# library(randomForest)
+# i <- 1
+# testid <- split[, i]
+# ind <- which(data$id %in% testid)
+# train <-data[-ind, !colnames(train) %in% "id"] 
+# test <- data[ind,]
+# # tmp <- oneHotEncoding(RemoveVariable(data[-ind,],c("id","loan_status")), 
+# #                       RemoveVariable(data[ind,],c("id","loan_status")))
+# # train.x <- tmp$train
+# # test.x <- tmp$test
+# # train <-as.data.frame(cbind(train.x,train.y))
+# library(randomForest)
+# rf_fit3 = randomForest(loan_status ~., 
+#                        data = train, 
+#                        ntree = 100, 
+#                        mtry = 5, 
+#                        nodesize = 3, 
+#                        sampsize = 10000, 
+#                        importance = TRUE)
+# rm.var <- c("id")
+# y <- "loan_status"
+# for(i in 1:ncol(split)){
+#   testid <- split[, i]
+#   ind <- which(data$id %in% testid)
+#   test.y <- data3[ind, y]
+#   train <- RemoveVariable(data3[-ind, ], rm.var)
+#   test.x <- RemoveVariable(data3[ind, ], c(rm.var, y))
+#   rf_fit3 = randomForest(loan_status ~., 
+#                          data = train, 
+#                          ntree = 100, 
+#                          mtry = 5, 
+#                          nodesize = 3, 
+#                          sampsize = 10000, 
+#                          importance = TRUE)
+#   pred3 = predict(rf_fit3, test.x, type = "prob")
+#   logLoss(test.y, pred3[,2])
+# }
+# 
+# #Logistic regression
+# result_lr <- rep(NA, 3)
+# for(i in 1:3) {
+#   testid <- split[, i]
+#   ind <- which(data$id %in% testid)
+#   train.y <-data[-ind,"loan_status"] 
+#   test.y <- data[ind,"loan_status"]
+#   train.x <- RemoveVariable(data[-ind,],c("id","loan_status"))
+#   test.x <- RemoveVariable(data[ind,],c("id","loan_status"))
+#   
+#   tmp <- oneHotEncoding(RemoveVariable(data[-ind,],c("id","loan_status")),
+#                         RemoveVariable(data[ind,],c("id","loan_status")))
+#   train_x <- tmp$train
+#   test_x <- tmp$test
+#   
+#   library(glmnet)
+#   library(doParallel)
+#   registerDoParallel(4)
+#   # lr.model <- cv.glmnet(train_x, train.y, family="binomial", alpha=1, parallel = TRUE)
+#   lr.model <- glmnet(train_x, train.y, family="binomial", alpha=0, lambda = 0.002, standardize = TRUE)
+#   lr.probs <- predict(lr.model, newx=test_x, type="response")
+#   output.lr <- cbind(testid, lr.probs)
+#   colnames(output.lr) <- c("id","prob")
+#   logLoss(test.y, output.lr[,"prob"])
+#   result_lr[i] <- logLoss(test.y, output.lr[,"prob"])
+# }
+# 
+# 
 
-# write.table(mysubmission_2018Q3.txt, file=outname, row.names = FALSE, sep=",", col.names = TRUE)
-# write.table(mysubmission_2018Q4.txt, file=outname, row.names = FALSE, sep=",", col.names = TRUE)
