@@ -118,7 +118,7 @@ processData <- function(data){
   data$pub_rec <- as.factor(data$pub_rec)
   
   ## Group: 0,1,2,3,4,5,6,7,10000 (10000 is missing values)
-  data$mort_acc[data$mort_acc > 7 & data$mort_acc < tmp] <- 7
+  data$mort_acc[data$mort_acc >= 7 & data$mort_acc < tmp] <- 7
   data$mort_acc <- as.factor(data$mort_acc)
   
   ## Group: 0, 1, 10000 (2 is missing values)
