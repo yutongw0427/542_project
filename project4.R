@@ -143,7 +143,7 @@ testid <- split[, i]
 ind <- which(data$id %in% testid)
 train.y <-data[-ind,"loan_status"] 
 test.y <- data[ind,"loan_status"]
-tmp <- PreProcessingMatrixOutput(RemoveVariable(data[-ind,],c("id","loan_status")), 
+tmp <- oneHotEncoding(RemoveVariable(data[-ind,],c("id","loan_status")), 
                                  RemoveVariable(data[ind,],c("id","loan_status")))
 train.x <- tmp$train
 test.x <- tmp$test
@@ -156,7 +156,7 @@ for(i in 1:ncol(split)){
   testid <- split[, i]
   ind2 <- which(data$id %in% testid)
   test.y <- data[ind2,"loan_status"]
-  tmp <- PreProcessingMatrixOutput(RemoveVariable(data[-ind,],c("id","loan_status")), 
+  tmp <- oneHotEncoding(RemoveVariable(data[-ind,],c("id","loan_status")), 
                                    RemoveVariable(data[ind2,],c("id","loan_status")))
   test.x <- tmp$test
   xgboost.prob <- predict(xgb.model, test.x, type="prob")
