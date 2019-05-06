@@ -97,7 +97,7 @@ processData <- function(data){
                                    c('Default','Charged Off') = 1")
   
   # remove unecessary variables
-  rm <- c("zip_code","emp_title", "title", "grade")
+  rm <- c("zip_code","emp_title", "title", "grade", "fico_range_high")
   data <- data[ , !(names(data) %in% rm)]
   
   # recode missing values
@@ -203,7 +203,7 @@ tmpQ4 <- process(data, testq4)
 train.x <- tmpQ3$train.x
 
 xgb.model <- xgboost(data = train.x, label = (as.numeric(train.y)-1), 
-                     nrounds =120,subsample = 0.6,eval_metric="logloss",
+                     nrounds =150, subsample = 0.6,eval_metric="logloss",
                      max_depth = 3, eta = 0.4, verbose=1, objective = "binary:logistic" )
 #train-logloss:0.447171 
 #Calculate by the given function :0.4471651
