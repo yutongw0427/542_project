@@ -251,24 +251,7 @@ print(abc)
 ##Random forest
 #********** model3: Random Forest ******************* 
 # library(randomForest)
-# i <- 1
-# testid <- split[, i]
-# ind <- which(data$id %in% testid)
-# train <-data[-ind, !colnames(train) %in% "id"] 
-# test <- data[ind,]
-# # tmp <- oneHotEncoding(RemoveVariable(data[-ind,],c("id","loan_status")), 
-# #                       RemoveVariable(data[ind,],c("id","loan_status")))
-# # train.x <- tmp$train
-# # test.x <- tmp$test
-# # train <-as.data.frame(cbind(train.x,train.y))
-# library(randomForest)
-# rf_fit3 = randomForest(loan_status ~., 
-#                        data = train, 
-#                        ntree = 100, 
-#                        mtry = 5, 
-#                        nodesize = 3, 
-#                        sampsize = 10000, 
-#                        importance = TRUE)
+# res_rf <- rep(NA, 3)                                        
 # rm.var <- c("id")
 # y <- "loan_status"
 # for(i in 1:ncol(split)){
@@ -277,15 +260,15 @@ print(abc)
 #   test.y <- data3[ind, y]
 #   train <- RemoveVariable(data3[-ind, ], rm.var)
 #   test.x <- RemoveVariable(data3[ind, ], c(rm.var, y))
-#   rf_fit3 = randomForest(loan_status ~., 
+#   rf_fit = randomForest(loan_status ~., 
 #                          data = train, 
 #                          ntree = 100, 
 #                          mtry = 5, 
 #                          nodesize = 3, 
 #                          sampsize = 10000, 
 #                          importance = TRUE)
-#   pred3 = predict(rf_fit3, test.x, type = "prob")
-#   logLoss(test.y, pred3[,2])
+#   pred = predict(rf_fit, test.x, type = "prob")
+#   res_rf[i] = logLoss(test.y, pred[,2])
 # }
 # 
 # #Logistic regression
